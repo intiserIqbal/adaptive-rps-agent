@@ -1,0 +1,16 @@
+opponent,AI,win_%,draw_%,loss_%
+Random,Random (baseline),32.9,33.6,33.5
+Random,Frequency,33.5,33.4,33.1
+Random,Markov,33.3,33.3,33.4
+Biased (50% Rock),Random (baseline),33.1,33.6,33.3
+Biased (50% Rock),Frequency,50.1,24.5,25.4
+Biased (50% Rock),Markov,48.2,25.7,26.1
+"Cyclic (R,P,S)",Random (baseline),33.2,33.5,33.3
+"Cyclic (R,P,S)",Frequency,10.9,61.2,27.9
+"Cyclic (R,P,S)",Markov,99.5,0.2,0.3
+Switcher (never repeats),Random (baseline),32.9,33.8,33.3
+Switcher (never repeats),Frequency,31.2,34.4,34.4
+Switcher (never repeats),Markov,50.0,21.8,28.2
+Reactive (beats AI's last),Random (baseline),32.3,33.5,34.2
+Reactive (beats AI's last),Frequency,22.3,0.2,77.4
+Reactive (beats AI's last),Markov,47.7,3.2,49.1
