@@ -8,12 +8,16 @@ How do frequency-based and first-order Markov opponent models compare in predict
 
 ## Included
 
-- Random baseline, frequency model, and first-order Markov model
-- Controlled random, biased, cyclic, and strategy-switching opponents
+- **Agent models**: Random baseline, Frequency model, First-order Markov, Decayed Markov ($\gamma=0.90$), and Second-order Markov ($k=2$)
+- **Controlled opponents**: Uniform random, biased, cyclic, and strategy-switching (concept drift)
+- **Interactive Streamlit dashboard**:
+  - 🎮 **Live Arena**: Play directly against any AI model in real time with interactive belief bar charts and move tracking
+  - 📊 **Benchmark Experiments**: Monte Carlo simulations with interactive Altair charts, shaded confidence bands ($\pm 1\sigma$), and change-point markers
+  - 🧠 **Model Brain Visualizer**: Heatmap of learned transition matrices $P(M_t \mid M_{t-1})$
+  - 📖 **Theory & Methodology**: Mathematical formulations of Nash Equilibrium and non-stationary Markov adaptation
 - Repeated experiments with deterministic seeds
-- Round-level CSV export, summary table, and win-rate/prediction-accuracy charts
+- Round-level CSV export, summary table, and metrics
 - Unit tests and GitHub Actions CI
-- Basic Streamlit dashboard
 
 ## Quick start (Python 3.11+)
 
@@ -64,10 +68,12 @@ These are baseline models, not state-of-the-art AI. Results depend on opponent b
 4. Let CI run `pytest` and `ruff check .` before merging.
 5. Record experiment settings and results; do not commit generated result files unless needed for the report.
 
-## Next improvements
+## Completed & Future Improvements
 
-- Add confidence intervals across independent seeds.
-- Add a human-play mode and tests for the round flow.
-- Add a formal adaptation-time metric after strategy switches.
-- Consider Bayesian smoothing and probabilistic action selection.
-- Add webcam recognition only after the research demo is stable.
+- [x] Confidence intervals ($\pm 1\sigma$) across independent seeds.
+- [x] Interactive human-play Live Arena mode with real-time belief distributions.
+- [x] Exponentially Decayed Markov model ($\gamma \in (0, 1)$) for fast concept drift recovery.
+- [x] Second-order Markov model ($k=2$) for sequence pattern exploitation.
+- [x] Interactive transition matrix heatmap visualizer.
+- [ ] Add Win-Stay Lose-Shift (WSLS) psychological human behavior model.
+- [ ] Add webcam gesture recognition using OpenCV/MediaPipe (optional future bonus).

@@ -1,16 +1,30 @@
 """Simulation and metrics for comparing agents against controlled opponents."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import pandas as pd
 
 from adaptive_rps.game import Move, outcome
-from adaptive_rps.models import FrequencyAgent, MarkovAgent, RandomAgent
+from adaptive_rps.models import (
+    DecayMarkovAgent,
+    FrequencyAgent,
+    Markov2Agent,
+    MarkovAgent,
+    RandomAgent,
+)
 from adaptive_rps.opponents import BiasedOpponent, CycleOpponent, RandomOpponent, SwitchingOpponent
 
 AgentFactory = Callable[[int], object]
-OpponentFactory = Callable[[int, int], object]
+OpponentFactory = Callable[[int], object]
+
+DEFAULT_AGENT_FACTORIES: list[tuple[str, AgentFactory]] = [
+    ("Random baseline", lambda seed: RandomAgent(seed)),
+    ("Frequency model", lambda seed: FrequencyAgent(seed)),
+    ("First-order Markov model", lambda seed: MarkovAgent(seed)),
+    ("Decayed Markov model (γ=0.90)", lambda seed: DecayMarkovAgent(seed, gamma=0.90)),
+    ("Second-order Markov model", lambda seed: Markov2Agent(seed)),
+]
 
 
 def run_match(agent, opponent, rounds: int, seed: int, opponent_name: str, agent_name: str) -> pd.DataFrame:
@@ -44,12 +58,16 @@ def run_match(agent, opponent, rounds: int, seed: int, opponent_name: str, agent
     return pd.DataFrame(rows)
 
 
-def run_experiments(rounds: int = 300, seeds: int = 5, switch_round: int = 150) -> pd.DataFrame:
+def run_experiments(
+    rounds: int = 300,
+    seeds: int = 5,
+    switch_round: int = 150,
+    selected_agents: Sequence[str] | None = None,
+) -> pd.DataFrame:
     """Compare agents across opponent types and independent seeds."""
     agent_factories = [
-        ("Random baseline", lambda seed: RandomAgent(seed)),
-        ("Frequency model", lambda seed: FrequencyAgent(seed)),
-        ("First-order Markov model", lambda seed: MarkovAgent(seed)),
+        (name, factory) for name, factory in DEFAULT_AGENT_FACTORIES
+        if selected_agents is None or name in selected_agents
     ]
     opponent_factories = [
         ("Random", lambda seed: RandomOpponent(seed)),
@@ -70,7 +88,13 @@ def run_experiments(rounds: int = 300, seeds: int = 5, switch_round: int = 150) 
 def summarize(results: pd.DataFrame) -> pd.DataFrame:
     """Summarize final per-match performance across seeds."""
     final_rows = results.sort_values("round").groupby(["seed", "opponent", "agent"], as_index=False).tail(1)
-    return (final_rows.groupby(["opponent", "agent"], as_index=False)
-            .agg(mean_win_rate=("win_rate", "mean"), mean_reward=("average_reward", "mean"),
-                 mean_prediction_accuracy=("prediction_accuracy", "mean"),
-                 seeds=("seed", "nunique")))
+    return (
+        final_rows.groupby(["opponent", "agent"], as_index=False)
+        .agg(
+            mean_win_rate=("win_rate", "mean"),
+            std_win_rate=("win_rate", "std"),
+            mean_reward=("average_reward", "mean"),
+            mean_prediction_accuracy=("prediction_accuracy", "mean"),
+            seeds=("seed", "nunique"),
+        )
+    )
