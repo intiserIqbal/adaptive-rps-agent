@@ -1,8 +1,11 @@
+import math
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from adaptive_rps.experiment import (
+    adaptation_latency,
     evaluate_adaptation,
     export_results,
     run_experiments,
@@ -86,6 +89,71 @@ def test_evaluate_adaptation_and_summary():
     assert "mean_pre_win_rate" in summary.columns
     assert "mean_post_win_rate" in summary.columns
     assert "adaptation_success_rate" in summary.columns
+
+
+def _wins(pattern: str) -> list[bool]:
+    """Turn a string such as 'LLWW' into win flags."""
+    return [char == "W" for char in pattern]
+
+
+def test_adaptation_latency_counts_rounds_until_window_recovers():
+    # Windows of 4: the first one with at least 2 wins covers rounds 5-8.
+    assert adaptation_latency(_wins("LLLLLLWWWW"), 0.5, window=4, sustain_rounds=1) == 8
+
+
+def test_adaptation_latency_is_nan_when_never_recovered():
+    assert math.isnan(adaptation_latency(_wins("LLLLLLLLLL"), 0.5, window=4, sustain_rounds=1))
+    # Fewer post-switch rounds than one full window cannot show a recovery.
+    assert math.isnan(adaptation_latency(_wins("WWW"), 0.5, window=4, sustain_rounds=1))
+
+
+def test_adaptation_latency_ignores_short_lucky_streaks():
+    pattern = _wins("LLWWLLLLWWWWWW")
+    # A two-round streak at rounds 3-4 counts when nothing has to be sustained...
+    assert adaptation_latency(pattern, 1.0, window=2, sustain_rounds=1) == 4
+    # ...but not when the win rate has to hold for 3 consecutive rounds.
+    assert adaptation_latency(pattern, 1.0, window=2, sustain_rounds=3) == 10
+
+
+def test_adaptation_latency_rejects_invalid_settings():
+    with pytest.raises(ValueError, match="window must be at least 1"):
+        adaptation_latency(_wins("WW"), window=0)
+    with pytest.raises(ValueError, match="sustain_rounds must be at least 1"):
+        adaptation_latency(_wins("WW"), sustain_rounds=0)
+
+
+def test_evaluate_adaptation_latency_excludes_pre_switch_rounds():
+    # The agent wins every round before the switch and loses 30 in a row after it.
+    # Its rolling win rate is still high at round 11, but it has not adapted yet.
+    outcomes = ["win"] * 10 + ["loss"] * 30 + ["win"] * 20
+    results = pd.DataFrame({
+        "seed": 0,
+        "opponent": "Strategy switch",
+        "agent": "Slow learner",
+        "round": range(1, len(outcomes) + 1),
+        "outcome": outcomes,
+        "prediction_accuracy": float("nan"),
+    })
+
+    adapt_df = evaluate_adaptation(
+        results, switch_round=10, target_win_rate=0.5, window=10, sustain_rounds=5
+    )
+
+    # Post-switch round 35 is the first where 5 of the last 10 rounds are wins.
+    assert adapt_df["adaptation_latency"].iloc[0] == 35
+
+
+def test_evaluate_adaptation_latency_on_real_experiment():
+    window = 20
+    results = run_experiments(rounds=300, seeds=3, switch_round=150)
+    adapt_df = evaluate_adaptation(results, switch_round=150, window=window)
+
+    measured = adapt_df["adaptation_latency"].dropna()
+    assert (measured >= window).all()
+    assert (measured <= 150).all()
+    # The Markov model re-learns the scissors-heavy phase; it cannot do so instantly.
+    markov = adapt_df[adapt_df["agent"] == "First-order Markov model"]
+    assert markov["adaptation_latency"].notna().all()
 
 
 def test_export_results(tmp_path: Path):

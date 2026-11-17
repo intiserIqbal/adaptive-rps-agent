@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import numpy as np
@@ -163,21 +163,63 @@ def summarize(results: pd.DataFrame) -> pd.DataFrame:
     return summary
 
 
+def adaptation_latency(
+    post_switch_wins: Sequence[bool],
+    target_win_rate: float = 0.50,
+    window: int = 20,
+    sustain_rounds: int = 10,
+) -> float:
+    """Rounds after a strategy switch until the win rate has recovered.
+
+    ``post_switch_wins`` holds one win flag per round played *after* the switch, in
+    order. The win rate is measured over the most recent ``window`` of those rounds,
+    so a window never mixes in pre-switch outcomes. Recovery is the first point where
+    that win rate is at least ``target_win_rate`` and stays there for
+    ``sustain_rounds`` consecutive rounds, which filters out lucky streaks.
+
+    Returns the number of post-switch rounds played when the sustained stretch begins
+    (so the smallest possible value is ``window``), or NaN if the agent never recovers
+    within the match.
+    """
+    if window < 1:
+        raise ValueError("window must be at least 1")
+    if sustain_rounds < 1:
+        raise ValueError("sustain_rounds must be at least 1")
+
+    wins = np.asarray(post_switch_wins, dtype=int)
+    if len(wins) < window:
+        return float("nan")
+
+    cumulative = np.concatenate(([0], np.cumsum(wins)))
+    # window_rates[i] is the win rate over post-switch rounds (i + 1) .. (i + window).
+    window_rates = (cumulative[window:] - cumulative[:-window]) / window
+
+    streak = 0
+    for index, rate in enumerate(window_rates):
+        streak = streak + 1 if rate >= target_win_rate else 0
+        if streak >= sustain_rounds:
+            return float(index - sustain_rounds + 1 + window)
+    return float("nan")
+
+
 def evaluate_adaptation(
     results: pd.DataFrame,
     switch_round: int = 150,
     target_win_rate: float = 0.50,
+    window: int = 20,
+    sustain_rounds: int = 10,
 ) -> pd.DataFrame:
     """Evaluate agent adaptation behavior before and after strategy switch.
-    
+
     Calculates:
       - pre_switch_win_rate: win rate up to switch_round
       - post_switch_win_rate: win rate strictly after switch_round
       - pre_switch_accuracy / post_switch_accuracy: prediction accuracy in each regime
       - pre_switch_reward / post_switch_reward: average reward in each regime
-      - adaptation_latency: number of rounds after switch until rolling win rate
-        first reaches or exceeds target_win_rate. If target is never reached,
-        adaptation_latency is float('nan').
+      - adaptation_latency: number of rounds after the switch until the win rate over
+        the last ``window`` post-switch rounds reaches ``target_win_rate`` and holds it
+        for ``sustain_rounds`` consecutive rounds (see ``adaptation_latency``). If the
+        agent never recovers, adaptation_latency is float('nan').
     """
     if "opponent" in results.columns and "Strategy switch" in results["opponent"].values:
         eval_data = results[results["opponent"] == "Strategy switch"]
@@ -216,12 +258,15 @@ def evaluate_adaptation(
         else:
             post_accuracy = float("nan")
 
-        # Adaptation latency: rounds after switch_round until rolling_win_rate >= target_win_rate
-        latency = float("nan")
-        for _, row in post_group.iterrows():
-            if "rolling_win_rate" in row and row["rolling_win_rate"] >= target_win_rate:
-                latency = float(row["round"] - switch_round)
-                break
+        # Adaptation latency is measured on post-switch outcomes only. The match-level
+        # rolling_win_rate column is not used here: just after the switch its window is
+        # still full of pre-switch rounds, which would report an instant "recovery".
+        latency = adaptation_latency(
+            post_group["outcome"].eq("win").to_numpy(),
+            target_win_rate=target_win_rate,
+            window=window,
+            sustain_rounds=sustain_rounds,
+        )
 
         records.append({
             "agent": agent_name,

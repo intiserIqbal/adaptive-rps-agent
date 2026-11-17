@@ -71,7 +71,12 @@ To maintain experimental validity:
 * **Pre-Switch Win Rate:** Win rate for rounds $r \le K$.
 * **Post-Switch Win Rate:** Win rate for rounds $r > K$.
 * **Win Rate Drop:** $\Delta = \text{Win Rate}_{\text{pre}} - \text{Win Rate}_{\text{post}}$.
-* **Adaptation Latency:** Number of rounds following switch ($r - K$) until the agent's rolling win rate recovers to $\ge \tau$ (default recovery threshold $\tau = 0.50$). If unreached, latency is undefined (`NaN`).
+* **Adaptation Latency:** Number of rounds following the switch ($r - K$) until the agent's win rate has recovered. Let $W_k^{\text{post}}(r)$ be the win rate over the $k$ most recent rounds, defined only when all $k$ of them are post-switch ($r \ge K + k$). The latency is the smallest $r - K$ such that
+  $$W_k^{\text{post}}(r') \ge \tau \quad \text{for all } r' \in [r,\ r + h - 1]$$
+  with defaults $\tau = 0.50$ (recovery threshold), $k = 20$ (window) and $h = 10$ (sustain rounds). If no such round exists, latency is undefined (`NaN`).
+  * *Why post-switch rounds only:* immediately after the switch, an ordinary rolling window is still filled with pre-switch outcomes, so an agent that was winning before the switch would appear to recover in one round. Consequently the smallest possible latency is $k$.
+  * *Why a sustain requirement:* a non-learning agent can reach $\tau$ in a single window by chance. Requiring the level to hold for $h$ rounds reduces these false recoveries; the random baseline's remaining success rate is the noise floor against which the learning agents should be read.
+* **Adaptation Success Rate:** Fraction of seeds in which a latency is defined.
 
 ### 6.4 Aggregation Across Seeds
 * **Mean Performance:** $\bar{x} = \frac{1}{S} \sum_{s=1}^S x_s$
