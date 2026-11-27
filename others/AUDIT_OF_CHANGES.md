@@ -28,7 +28,7 @@ This audit records the repository's development from its initial experiment fram
 
 ## 2. Development History From the Beginning
 
-The repository history contains four starting and feature commits. The latest WSLS and UI updates are present as uncommitted working-tree changes at the time of this audit.
+The repository history contains the initial setup and feature commits, plus two experiment-protocol pull requests. The WSLS and UI updates are integrated with those remote experiment changes in the current local branch.
 
 | Stage | Change | Result |
 | :--- | :--- | :--- |
@@ -36,15 +36,18 @@ The repository history contains four starting and feature commits. The latest WS
 | Initial experiment framework (`5028d7e`) | Added the first game and experiment framework, opponent/model code, and project setup. | Runnable experiment foundation. |
 | CI/signing follow-up (`382882b`) | Added a repository workflow change to verify automatic GPG signing. | GitHub/repository workflow support. |
 | AI and dashboard expansion (`c907002`) | Added Decayed Markov and Second-order Markov agents, the interactive Streamlit arena and visualizers, plus this audit document. | Expanded from the initial experiment into a multi-model demonstration. |
-| Current working changes (November 27, 2026) | Added WSLS opponent behavior, included it in reproducible benchmarks, improved dashboard styling and benchmark refresh behavior, and updated documentation/experiment shape expectations. | Outcome-driven opponent is available for comparison in the UI. |
+| Experiment protocol PR (`5483a4f`, merged as PR #2) | Added rolling performance, seed variability, confidence intervals, experiment-fairness validation, adaptation metrics, result export, and the protocol document. | Stronger experiment reporting and reproducibility checks. |
+| Adaptation metric fix (`e6dae71`, merged as PR #3) | Measures recovery only on post-switch rounds and requires recovery to persist. | Avoids counting pre-switch performance as immediate adaptation. |
+| Current updates (November 27, 2026) | Added WSLS opponent behavior, included it in reproducible benchmarks, improved dashboard styling and benchmark refresh behavior, and restored all five agents alongside the experiment protocol updates. | Outcome-driven opponent and updated experiment metrics are available together. |
 
 ### Current change details
 
 - `src/adaptive_rps/opponents.py`: Added `WSLSOpponent`. It starts with a seeded random move, then repeats its previous move after a win or draw and randomly selects one of the other two moves after a loss.
-- `src/adaptive_rps/experiment.py`: Added WSLS to the experiment opponent set. `run_match` calls an opponent's `observe(agent_move, opponent_move)` hook after each round when available, allowing stateful outcome-based opponents while leaving existing opponents unchanged.
+- `src/adaptive_rps/experiment.py`: Preserved the protocol PR's rolling metrics, seed variability, confidence intervals, adaptation-latency tools, fairness validation, and CSV exports. Restored all five agents, enabled the selected-agent filter used by the dashboard, added WSLS to the benchmark set, and call an opponent's `observe(agent_move, opponent_move)` hook after each round when available.
+- `docs/experiment-protocol.md`: Retained the experiment design and metric definitions from the protocol PR.
 - `app.py`: Added the WSLS description in the benchmark and methodology views, made WSLS the initial opponent in the learning-curve selector, and refreshed the visual theme with gradient panels, metric cards, and more responsive controls. Benchmark results now rerun when rounds, seeds, switch round, or selected agents change.
 - `README.md`: Listed WSLS and the UI refresh as completed project features.
-- `tests/test_experiment.py`: Updated expected result counts for the fifth opponent. These expectations were edited but have not been rerun as part of the November 27 update.
+- `tests/test_experiment.py`: Kept the expanded protocol regression coverage and updated expected result counts for five agents and five opponents. Tests have not been rerun during this integration.
 
 ## 3. Quantitative Git Diff Summary (November 12 audit snapshot)
 

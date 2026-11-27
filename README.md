@@ -52,9 +52,9 @@ Each agent chooses before the current opponent move is revealed. It receives the
 - **Random baseline:** selects uniformly at random; it does not make explicit predictions.
 - **Frequency model:** counters the most frequently observed opponent move.
 - **First-order Markov model:** estimates the next move from the previous opponent move, falling back to global frequencies when there is no transition history.
-- **Opponents:** uniform random, fixed rock-heavy distribution, repeating rock-paper-scissors cycle, and a distribution that changes halfway through a match.
+- **Opponents:** uniform random, fixed rock-heavy distribution, repeating rock-paper-scissors cycle, strategy-switching, and Win-Stay, Lose-Shift.
 
-Metrics include cumulative win rate, average reward (`win=+1`, `draw=0`, `loss=-1`), and prediction accuracy on rounds where a prediction is available. Prediction accuracy and win rate measure different things.
+Metrics include cumulative and rolling win rate, average reward (`win=+1`, `draw=0`, `loss=-1`), prediction accuracy on rounds where a prediction is available, seed variability, confidence intervals, and post-switch adaptation latency. Prediction accuracy and win rate measure different things. See [the experiment protocol](docs/experiment-protocol.md) for metric definitions and reproducibility details.
 
 ## Important limitations
 
