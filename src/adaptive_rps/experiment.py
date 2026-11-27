@@ -13,7 +13,9 @@ from adaptive_rps.models import (
     MarkovAgent,
     RandomAgent,
 )
-from adaptive_rps.opponents import BiasedOpponent, CycleOpponent, RandomOpponent, SwitchingOpponent
+from adaptive_rps.opponents import (
+    BiasedOpponent, CycleOpponent, RandomOpponent, SwitchingOpponent, WSLSOpponent,
+)
 
 AgentFactory = Callable[[int], object]
 OpponentFactory = Callable[[int], object]
@@ -38,6 +40,8 @@ def run_match(agent, opponent, rounds: int, seed: int, opponent_name: str, agent
         agent_move, predicted = agent.choose(history)
         opponent_move = opponent.play(history)
         result = outcome(agent_move, opponent_move)
+        if hasattr(opponent, "observe"):
+            opponent.observe(agent_move, opponent_move)
         if predicted is not None:
             predictions += 1
             correct += int(predicted == opponent_move)
@@ -74,6 +78,7 @@ def run_experiments(
         ("Biased (rock-heavy)", lambda seed: BiasedOpponent(seed)),
         ("Cyclic pattern", lambda seed: CycleOpponent()),
         ("Strategy switch", lambda seed: SwitchingOpponent(seed, switch_round)),
+        ("Win-Stay, Lose-Shift", lambda seed: WSLSOpponent(seed)),
     ]
     frames = []
     for seed in range(seeds):

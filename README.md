@@ -9,7 +9,7 @@ How do frequency-based and first-order Markov opponent models compare in predict
 ## Included
 
 - **Agent models**: Random baseline, Frequency model, First-order Markov, Decayed Markov ($\gamma=0.90$), and Second-order Markov ($k=2$)
-- **Controlled opponents**: Uniform random, biased, cyclic, and strategy-switching (concept drift)
+- **Controlled opponents**: Uniform random, biased, cyclic, strategy-switching (concept drift), and Win-Stay, Lose-Shift (outcome-driven behavior)
 - **Interactive Streamlit dashboard**:
   - 🎮 **Live Arena**: Play directly against any AI model in real time with interactive belief bar charts and move tracking
   - 📊 **Benchmark Experiments**: Monte Carlo simulations with interactive Altair charts, shaded confidence bands ($\pm 1\sigma$), and change-point markers
@@ -75,5 +75,6 @@ These are baseline models, not state-of-the-art AI. Results depend on opponent b
 - [x] Exponentially Decayed Markov model ($\gamma \in (0, 1)$) for fast concept drift recovery.
 - [x] Second-order Markov model ($k=2$) for sequence pattern exploitation.
 - [x] Interactive transition matrix heatmap visualizer.
-- [ ] Add Win-Stay Lose-Shift (WSLS) psychological human behavior model.
+- [x] Add Win-Stay Lose-Shift (WSLS) outcome-driven opponent to benchmark experiments.
+- [x] Refresh dashboard styling and benchmark result updates for a more interactive demo.
 - [ ] Add webcam gesture recognition using OpenCV/MediaPipe (optional future bonus).

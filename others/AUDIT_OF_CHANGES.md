@@ -2,7 +2,7 @@
 
 **Project Name:** Adaptive Rock-Paper-Scissors Agent  
 **Course:** CSE440: Artificial Intelligence  
-**Audit Date:** November 12, 2026  
+**Audit Date:** November 27, 2026  
 **Repository Working Directory:** `g:\NSU\CSE440\proj\adaptive-rps-agent`  
 **Audit File Location:** `others/AUDIT_OF_CHANGES.md`
 
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-This audit provides a detailed, technical account of all modifications made to transform the **Adaptive RPS Agent** repository from a minimal 3-model simulation script into an interactive, multi-agent AI research and demonstration platform.
+This audit records the repository's development from its initial experiment framework through the current interactive research demo. The chronological summary below is based on the available Git history and the changes in the current working tree.
 
 ### Summary of Major Deliverables:
 1. **Exponentially Decayed Markov Model (`DecayMarkovAgent`)**: Solved the concept drift problem in non-stationary environments using an exponential discount parameter ($\gamma = 0.90$).
@@ -21,10 +21,32 @@ This audit provides a detailed, technical account of all modifications made to t
    - **Tab 3: Model Brain Visualizer** with interactive $3 \times 3$ transition probability heatmaps ($P(M_t \mid M_{t-1})$).
    - **Tab 4: Methodology & Theory** detailing game-theoretic Nash equilibrium and mathematical formulas.
 4. **Comprehensive Test Suite & Quality Assurance**: All unit tests expanded and passing (9/9), linter verified clean with `ruff`.
+5. **Win-Stay, Lose-Shift opponent**: Added outcome-dependent behavior (repeat after a win/draw, shift after a loss) to the reproducible benchmark.
+6. **Dashboard polish**: Refined the visual theme and hero area, made the benchmark default to WSLS, and refreshes benchmark data when simulation settings change.
 
 ---
 
-## 2. Quantitative Git Diff Summary
+## 2. Development History From the Beginning
+
+The repository history contains four starting and feature commits. The latest WSLS and UI updates are present as uncommitted working-tree changes at the time of this audit.
+
+| Stage | Change | Result |
+| :--- | :--- | :--- |
+| Initial commit (`b049bda`) | Established the Adaptive RPS project. | Repository baseline. |
+| Initial experiment framework (`5028d7e`) | Added the first game and experiment framework, opponent/model code, and project setup. | Runnable experiment foundation. |
+| CI/signing follow-up (`382882b`) | Added a repository workflow change to verify automatic GPG signing. | GitHub/repository workflow support. |
+| AI and dashboard expansion (`c907002`) | Added Decayed Markov and Second-order Markov agents, the interactive Streamlit arena and visualizers, plus this audit document. | Expanded from the initial experiment into a multi-model demonstration. |
+| Current working changes (November 27, 2026) | Added WSLS opponent behavior, included it in reproducible benchmarks, improved dashboard styling and benchmark refresh behavior, and updated documentation/experiment shape expectations. | Outcome-driven opponent is available for comparison in the UI. |
+
+### Current change details
+
+- `src/adaptive_rps/opponents.py`: Added `WSLSOpponent`. It starts with a seeded random move, then repeats its previous move after a win or draw and randomly selects one of the other two moves after a loss.
+- `src/adaptive_rps/experiment.py`: Added WSLS to the experiment opponent set. `run_match` calls an opponent's `observe(agent_move, opponent_move)` hook after each round when available, allowing stateful outcome-based opponents while leaving existing opponents unchanged.
+- `app.py`: Added the WSLS description in the benchmark and methodology views, made WSLS the initial opponent in the learning-curve selector, and refreshed the visual theme with gradient panels, metric cards, and more responsive controls. Benchmark results now rerun when rounds, seeds, switch round, or selected agents change.
+- `README.md`: Listed WSLS and the UI refresh as completed project features.
+- `tests/test_experiment.py`: Updated expected result counts for the fifth opponent. These expectations were edited but have not been rerun as part of the November 27 update.
+
+## 3. Quantitative Git Diff Summary (November 12 audit snapshot)
 
 ```text
  README.md                      |  26 +--
@@ -38,7 +60,7 @@ This audit provides a detailed, technical account of all modifications made to t
 
 ---
 
-## 3. Detailed File-by-File Audit
+## 4. Detailed File-by-File Audit
 
 ### 3.1. `src/adaptive_rps/models.py` (Core Agent Architectures)
 
@@ -146,7 +168,7 @@ Transformed from a static, 60-line script with Matplotlib into an interactive, m
 
 ---
 
-## 4. Agent Model Comparison Matrix
+## 5. Agent Model Comparison Matrix
 
 | Agent | Memory Complexity | State Representation $s_t$ | Decision Rule | Non-Stationary Adaptation |
 | :--- | :--- | :--- | :--- | :--- |
@@ -155,12 +177,13 @@ Transformed from a static, 60-line script with Matplotlib into an interactive, m
 | **First-Order Markov** | $O(|\mathcal{M}|^2)$ | $M_{t-1}$ | $\text{counter}(\arg\max_m N(M_{t-1}, m))$ | Slow (accumulated counts cause inertia) |
 | **Decayed Markov** | $O(|\mathcal{M}|^2)$ | $M_{t-1}$ | $\text{counter}(\arg\max_m N_t(M_{t-1}, m))$ | **Fast ($\gamma=0.90$ decays past by $>95\%$ in 30 rds)** |
 | **Second-Order Markov** | $O(|\mathcal{M}|^3)$ | $(M_{t-2}, M_{t-1})$ | $\text{counter}(\arg\max_m N(M_{t-2}, M_{t-1}, m))$ | Hierarchical backoff to order-1 & global |
+| **Win-Stay, Lose-Shift opponent** | $O(1)$ | Previous move and previous outcome | Repeat after win/draw; choose another move after loss | Outcome-dependent |
 
 ---
 
-## 5. Verification Commands & Execution Status
+## 6. Verification Commands & Execution Status
 
-All verification checks were run locally and succeeded:
+The checks below were recorded in the November 12 audit and describe that earlier project state:
 
 ```powershell
 # 1. Run unit tests
@@ -176,3 +199,5 @@ streamlit run app.py
 ```
 
 *Audit document prepared and archived in `others/AUDIT_OF_CHANGES.md`.*
+
+For the November 27 updates, the benchmark test expectations were adjusted, but tests, linting, and a UI launch were not run during that update.

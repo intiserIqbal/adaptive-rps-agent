@@ -28,24 +28,24 @@ st.markdown("""
 <style>
     /* Metric Cards */
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, rgba(30, 34, 42, 0.7) 0%, rgba(20, 24, 30, 0.9) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 14px 18px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        background: linear-gradient(135deg, rgba(23, 37, 61, 0.9), rgba(21, 31, 49, 0.82));
+        border: 1px solid rgba(125, 170, 230, 0.20);
+        border-radius: 16px;
+        padding: 16px 20px;
+        box-shadow: 0 8px 24px rgba(3, 10, 24, 0.16);
     }
     div[data-testid="stMetric"]:hover {
-        border-color: rgba(66, 153, 225, 0.4);
+        border-color: rgba(93, 190, 255, 0.65);
     }
     /* Move Buttons */
     div.stButton > button {
-        border-radius: 10px;
+        border-radius: 12px;
         font-weight: 600;
-        transition: all 0.15s ease-in-out;
+        transition: all 0.18s ease-in-out;
     }
     div.stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 14px rgba(0, 114, 255, 0.25);
+        box-shadow: 0 6px 18px rgba(0, 114, 255, 0.30);
     }
     /* Badges */
     .arena-card {
@@ -67,6 +67,27 @@ st.markdown("""
         color: #ecc94b;
         font-weight: 700;
     }
+    [data-testid="stAppViewContainer"] {
+        background: radial-gradient(ellipse at 12% 0%, rgba(47, 111, 186, .12), transparent 38%),
+                    radial-gradient(ellipse at 95% 8%, rgba(124, 74, 190, .11), transparent 34%);
+    }
+    [data-testid="stTabs"] button[role="tab"] {
+        border-radius: 12px 12px 4px 4px;
+        padding: 10px 14px;
+        transition: background .18s ease, color .18s ease;
+    }
+    [data-testid="stTabs"] button[role="tab"]:hover { background: rgba(80, 150, 230, .12); }
+    div[data-testid="stExpander"] { border-radius: 14px; }
+    .hero-panel {
+        padding: 26px 30px;
+        border-radius: 22px;
+        border: 1px solid rgba(137, 183, 238, .22);
+        background: linear-gradient(115deg, rgba(22, 49, 80, .92), rgba(38, 35, 74, .84));
+        box-shadow: 0 14px 36px rgba(4, 12, 28, .20);
+        margin: 10px 0 22px 0;
+    }
+    .hero-panel h1 { margin: 0 0 8px 0; font-size: clamp(1.7rem, 3vw, 2.5rem); }
+    .hero-panel p { margin: 0; color: rgba(235, 242, 252, .82); font-size: 1.03rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -94,10 +115,10 @@ with st.sidebar:
     )
 
 # Hero Header
-st.title("Adaptive Rock-Paper-Scissors: Online Opponent Modeling")
 st.markdown(
-    "A research and demonstration platform comparing **Frequency**, **First-order Markov**, **Second-order Markov**, "
-    "and **Decayed Markov** agents under stationary and changing opponent strategies."
+    "<div class='hero-panel'><h1>✊ Adaptive RPS Lab</h1>"
+    "<p>Explore how online learning models read patterns, respond to strategy shifts, and adapt to human-style play.</p></div>",
+    unsafe_allow_html=True,
 )
 
 tab_arena, tab_benchmark, tab_brain, tab_theory = st.tabs([
@@ -127,7 +148,7 @@ def init_arena_agent(agent_choice: str, seed: int = 42):
 
 with tab_arena:
     st.subheader("Play Against the Adaptive AI")
-    st.caption("Make your moves. Notice how the adaptive models detect your subconscious patterns over 10–15 rounds!")
+    st.caption("Play a few rounds and watch the agent update its belief about your next move.")
 
     col_model, col_reset = st.columns([3, 1])
     with col_model:
@@ -292,7 +313,8 @@ with tab_benchmark:
     st.subheader("Controlled Benchmark Experiments")
     st.caption("Repeated trials across controlled stationary and non-stationary opponents.")
 
-    if run_sim or "sim_results" not in st.session_state:
+    sim_signature = (rounds, seeds, switch_round, tuple(selected_agents))
+    if run_sim or st.session_state.get("sim_signature") != sim_signature:
         with st.spinner("Running Monte Carlo experiments across random seeds..."):
             actual_agents = selected_agents if selected_agents else all_agent_names
             st.session_state.sim_results = run_experiments(
@@ -301,6 +323,7 @@ with tab_benchmark:
                 switch_round=min(switch_round, rounds - 1),
                 selected_agents=actual_agents,
             )
+            st.session_state.sim_signature = sim_signature
 
     results = st.session_state.sim_results
     summary = summarize(results)
@@ -319,9 +342,14 @@ with tab_benchmark:
 
     st.markdown("---")
     st.markdown("### Performance Dynamics Over Time")
+    st.caption("Choose an opponent below to compare model learning curves. The shaded region shows one standard deviation across seeds.")
 
     opp_list = sorted(results["opponent"].unique())
-    selected_opp = st.selectbox("Select Opponent to Analyze", opp_list, index=opp_list.index("Strategy switch") if "Strategy switch" in opp_list else 0)
+    default_opp = "Win-Stay, Lose-Shift" if "Win-Stay, Lose-Shift" in opp_list else "Strategy switch"
+    selected_opp = st.selectbox(
+        "Select Opponent to Analyze", opp_list,
+        index=opp_list.index(default_opp) if default_opp in opp_list else 0,
+    )
 
     opp_df = results[results["opponent"] == selected_opp]
 
@@ -392,6 +420,13 @@ with tab_benchmark:
     > The standard **First-order Markov** model suffers a severe slump because its old transition counts dominate its memory.
     > In contrast, the **Decayed Markov** model exponentially decays older memories ($\gamma = 0.90$), adapting to the new distribution significantly faster!
     """)
+
+    with st.expander("🧠 New opponent: Win-Stay, Lose-Shift", expanded=False):
+        st.markdown(
+            "This opponent starts with a seeded random move. After each round, it **repeats its move after a win or draw** "
+            "and **switches to one of the other two moves after a loss**. Select it in the opponent chart to see whether "
+            "the agents can learn this outcome-driven pattern."
+        )
 
     csv_data = results.to_csv(index=False).encode("utf-8")
     st.download_button(
@@ -523,3 +558,4 @@ with tab_theory:
     - As $t$ progresses, observations $k$ steps in the past decay by $\gamma^k$.
     - For $\gamma = 0.90$, weights decay by $>95\%$ within 30 rounds ($\approx 0.90^{30} \approx 0.042$), allowing the agent to break out of inertia and track the opponent's new strategy.
     """)
+    st.markdown("### 5. Win-Stay, Lose-Shift Opponent\nThe opponent repeats its previous move after a win or draw, and randomly switches after a loss. Its behavior depends on the previous round's outcome, making it a simple model of outcome-driven human play.")
