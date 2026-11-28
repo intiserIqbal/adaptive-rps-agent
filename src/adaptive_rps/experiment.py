@@ -9,11 +9,31 @@ import numpy as np
 import pandas as pd
 
 from adaptive_rps.game import Move, outcome
-from adaptive_rps.models import FrequencyAgent, MarkovAgent, RandomAgent
-from adaptive_rps.opponents import BiasedOpponent, CycleOpponent, RandomOpponent, SwitchingOpponent
+from adaptive_rps.models import (
+    DecayMarkovAgent,
+    FrequencyAgent,
+    Markov2Agent,
+    MarkovAgent,
+    RandomAgent,
+)
+from adaptive_rps.opponents import (
+    BiasedOpponent,
+    CycleOpponent,
+    RandomOpponent,
+    SwitchingOpponent,
+    WSLSOpponent,
+)
 
 AgentFactory = Callable[[int], object]
 OpponentFactory = Callable[[int, int], object]
+
+DEFAULT_AGENT_FACTORIES: list[tuple[str, AgentFactory]] = [
+    ("Random baseline", lambda seed: RandomAgent(seed)),
+    ("Frequency model", lambda seed: FrequencyAgent(seed)),
+    ("First-order Markov model", lambda seed: MarkovAgent(seed)),
+    ("Decayed Markov model (γ=0.90)", lambda seed: DecayMarkovAgent(seed, gamma=0.90)),
+    ("Second-order Markov model", lambda seed: Markov2Agent(seed)),
+]
 
 
 def run_match(
@@ -26,7 +46,7 @@ def run_match(
     rolling_window: int = 20,
 ) -> pd.DataFrame:
     """Run a match; the agent must choose before the opponent's current move is revealed.
-    
+
     Includes round-by-round cumulative outcomes as well as rolling window performance
     to monitor transient dynamics and adaptation behavior.
     """
@@ -44,6 +64,8 @@ def run_match(
         agent_move, predicted = agent.choose(history)
         opponent_move = opponent.play(history)
         result = outcome(agent_move, opponent_move)
+        if hasattr(opponent, "observe"):
+            opponent.observe(agent_move, opponent_move)
 
         if predicted is not None:
             predictions += 1
@@ -91,18 +113,19 @@ def run_experiments(
     seeds: int = 5,
     switch_round: int = 150,
     rolling_window: int = 20,
+    selected_agents: Sequence[str] | None = None,
 ) -> pd.DataFrame:
     """Compare agents across opponent types and independent seeds."""
     agent_factories = [
-        ("Random baseline", lambda seed: RandomAgent(seed)),
-        ("Frequency model", lambda seed: FrequencyAgent(seed)),
-        ("First-order Markov model", lambda seed: MarkovAgent(seed)),
+        (name, factory) for name, factory in DEFAULT_AGENT_FACTORIES
+        if selected_agents is None or name in selected_agents
     ]
     opponent_factories = [
         ("Random", lambda seed: RandomOpponent(seed)),
         ("Biased (rock-heavy)", lambda seed: BiasedOpponent(seed)),
         ("Cyclic pattern", lambda seed: CycleOpponent()),
         ("Strategy switch", lambda seed: SwitchingOpponent(seed, switch_round)),
+        ("Win-Stay, Lose-Shift", lambda seed: WSLSOpponent(seed)),
     ]
     frames = []
     for seed in range(seeds):
@@ -126,7 +149,7 @@ def run_experiments(
 
 def summarize(results: pd.DataFrame) -> pd.DataFrame:
     """Summarize final per-match performance across seeds.
-    
+
     Computes mean performance along with standard deviations and 95% confidence
     intervals across independent seeds to capture variability.
     """

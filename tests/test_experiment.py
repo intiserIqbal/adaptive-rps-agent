@@ -21,11 +21,21 @@ from adaptive_rps.opponents import BiasedOpponent, RandomOpponent
 def test_experiment_shape_and_reproducibility():
     first = run_experiments(rounds=10, seeds=1, switch_round=5)
     second = run_experiments(rounds=10, seeds=1, switch_round=5)
-    assert len(first) == 10 * 1 * 4 * 3
+    assert len(first) == 10 * 1 * 5 * 5
     assert first[["agent_move", "opponent_move", "outcome"]].equals(
         second[["agent_move", "opponent_move", "outcome"]]
     )
     assert not summarize(first).empty
+
+
+def test_experiment_selected_agents():
+    results = run_experiments(
+        rounds=5,
+        seeds=1,
+        switch_round=2,
+        selected_agents=["Frequency model", "Decayed Markov model (γ=0.90)"],
+    )
+    assert len(results) == 5 * 1 * 5 * 2
 
 
 def test_rolling_metrics_in_run_match():
